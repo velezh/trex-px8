@@ -1,11 +1,11 @@
 #include <arch/px8.h>
 #include <graphics.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "cactus_sprite.h"
 #include "dino_sprites.h"
 
+#define SCREEN_BLOCK_WIDTH 60
 #define OP_DEFINE_SPRITE 0x20
 #define OP_DRAW_SPRITE 0x23
 
@@ -18,7 +18,7 @@
 #define DINO_STANDING 5
 
 #define DINO_X 2
-#define DINO_Y 41
+#define DINO_Y 39
 
 #define CACTUS_Y 40
 
@@ -30,6 +30,7 @@
     ((((x1) + (w1) > (x2)) && ((x1) < (x2))) || (((x2) + (w2) > (x1)) && ((x2) < (x1)))) && \
         ((y1) + (h1) > (y2))
 
+extern unsigned char px_getk() __z88dk_fastcall;
 
 typedef struct {
   unsigned char op;
@@ -141,7 +142,7 @@ int main() {
   c_x2 = 40;
 
   while (should_run) {
-    switch (getk()) {
+    switch (px_getk()) {
       case KEY_UP: {
         state = JUMPING;
         break;
@@ -154,8 +155,8 @@ int main() {
 
     switch (state) {
       case RUNNING: {
-        anim_state ^= 1;
-        *dino_index = anim_state + FRAME_1_IDX;
+        anim_state = (anim_state + 1) & 0b11;
+        *dino_index = (anim_state >> 1) + FRAME_1_IDX;
         break;
       }
       case JUMPING: {
@@ -175,15 +176,15 @@ int main() {
 
     c_x1++;
     c_x2++;
-    *cactus_1_x = 80 - (c_x1 >> 1);
-    if (c_x1 > 159) {
+    *cactus_1_x = SCREEN_BLOCK_WIDTH - (c_x1 >> 1);
+    if (c_x1 > SCREEN_BLOCK_WIDTH * 2 - 1) {
       c_x1 = 0;
     }
     *cactus_1_index = (c_x1 & 1) + CACTUS_SPRITE_1_IDX;
     pack.cmd = &draw_cactus_cmd_1;
     subcpu_call(&pack);
-    *cactus_2_x = 80 - (c_x2 >> 1);
-    if (c_x2 > 159) {
+    *cactus_2_x = SCREEN_BLOCK_WIDTH - (c_x2 >> 1);
+    if (c_x2 > SCREEN_BLOCK_WIDTH * 2 - 1) {
       c_x2 = 0;
     }
 
@@ -205,6 +206,6 @@ int main() {
   }
 
   int a = 0;
-  scanf("%d\n", &a);
+  while(px_getk() == 0);
   return 0;
 }
